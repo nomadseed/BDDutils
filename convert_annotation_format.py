@@ -59,6 +59,8 @@ if __name__=='__main__':
     for jsonname in jsonlist:
         if '.json' not in jsonname:
             continue
+        if 'VIVA' in jsonname:
+            continue
         with open(os.path.join(labelpath,jsonname),'r') as fp:
             annodict=json.load(fp)
         
@@ -68,8 +70,7 @@ if __name__=='__main__':
         with open(os.path.join(labelpath,newname),'w') as fp:
             json.dump(newdict,fp,sort_keys=True, indent=4)
 
-        print(newname+' saved under '+labelpath)
-
+        print(newname+' saved under '+labelpath+'\n')
 
 
 
