@@ -11,7 +11,7 @@ import os
 import json
 import argparse
 
-def convert_annotation_VIVA(annodict, preservedlabels={'car','motor','bus','truck'}):
+def convertAnnotationVIVA(annodict, preservedlabels={'car','motor','bus','truck'}):
     newdict={}
     for anno in annodict:
         newanno={}
@@ -48,7 +48,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_path', type=str, 
         default='D:/Private Manager/Personal File/uOttawa/Lab works/2018 fall/BerkleyDeepDrive/bdd100k', 
-        help="select the file path for image folders")
+        help="select the file path for annotations")
     args = parser.parse_args()
     filepath=args.file_path
     
@@ -64,7 +64,7 @@ if __name__=='__main__':
         with open(os.path.join(labelpath,jsonname),'r') as fp:
             annodict=json.load(fp)
         
-        newdict=convert_annotation_VIVA(annodict)
+        newdict=convertAnnotationVIVA(annodict)
         newname=jsonname.replace('.json','_VIVA_format.json')
         
         with open(os.path.join(labelpath,newname),'w') as fp:
