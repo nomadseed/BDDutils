@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import argparse
+import configparser
 
 class Plot_scatter(object):
     """
@@ -71,11 +72,15 @@ class Plot_scatter(object):
         return True
     
     def save_scatter(self):
-        x = [i[0] for i in self.boxlist]
-        y = [i[1] for i in self.boxlist]
-        area = np.ones(len(self.boxlist))*1
+        x_box = [i[0] for i in self.boxlist]
+        y_box = [i[1] for i in self.boxlist]
+        x_label = [i[0] for i in self.anchorlist]
+        y_label = [i[1] for i in self.anchorlist]
+        area_box = np.ones(len(self.boxlist))*1
+        area_anchor = np.ones(len(self.anchorlist))*10
         ax = plt.subplot()
-        ax.scatter(x, y, s=area, alpha=0.3, c='b', marker='o')
+        ax.scatter(x_box, y_box, s=area_box, alpha=0.3, c='b', marker='o')
+        ax.scatter(x_label, y_label, s=area_anchor, alpha=1, c='b', marker='o', edgecolors='r')
         ax.set_xlabel('Width')
         ax.set_ylabel('Height')
         plt.grid(True)
@@ -95,9 +100,17 @@ def load_annotation(jsonpath):
     boxlist=[]
     for imgname in annodict:
         for box in annodict[imgname]['annotations']:
-            boxlist.append([box['width'],box['height']])
+            boxlist.append([box['width']*0.46875,box['height']*0.625])
     return boxlist
-        
+
+def load_anchors():
+    """
+    for now, load anchors manually
+    """
+    
+
+    return anchorlist
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('--json_path', type=str, 
@@ -117,9 +130,7 @@ if __name__=='__main__':
     
     plotter=Plot_scatter()
     
-    # load json file
-    #plotter.load_sample_data() #for debugging
-    
+    # load json file    
     boxlist=load_annotation(jsonpath)
     anchorlist=load_annotation(clustpath)
     plotter.load_anchor_list(anchorlist)
