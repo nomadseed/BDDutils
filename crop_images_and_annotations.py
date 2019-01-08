@@ -17,7 +17,7 @@ import argparse
 import cv2
 
 # for debug only
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 
 def crop_single_image(imgname,ori_size=(720,1280),resized=(480,640)):
     """
@@ -26,7 +26,8 @@ def crop_single_image(imgname,ori_size=(720,1280),resized=(480,640)):
     """
     img=cv2.imread(imgname) # note the cv2 img has [y,x,depth] format
     if img.shape[0]!=ori_size[0] or img.shape[1]!=ori_size[1]:
-        raise ValueError("input image shape is not correct")
+        print("input image shape of {} is not correct\n".format(imgname))
+        return None
     
     resizeratio=min(ori_size[0]/resized[0],ori_size[1]/resized[1])
     h=int(resized[0]*resizeratio)
@@ -58,7 +59,8 @@ def crop_images(imagepath,folder='cropped'):
                 if 'crop' in imgname:
                     continue
                 img=crop_single_image(os.path.join(currentpath,imgname))
-                cv2.imwrite(os.path.join(currentpath,folder,imgname.replace('.jpg','_crop.jpg')),img)
+                if img is not None:
+                    cv2.imwrite(os.path.join(currentpath,folder,imgname.replace('.jpg','_crop.jpg')),img)
             
     print('done cropping images')            
 
@@ -103,9 +105,11 @@ def correct_single_box(bbx,ori_size=(720,1280),resized=(480,640)):
         
         return newbox
 
-def crop_single_anno(annodict,ori_size=(720,1280),resized=(480,640)):
+def crop_single_anno(annodict,ori_size=(720,1280),resized=(480,640),rejectsize=0):
     newdict={}
     for imgname in annodict:
+        if annodict[imgname]['width']!=ori_size[1] or annodict[imgname]['height']!=ori_size[0]:
+            continue
         singleimg={}
         singleimg['height']=resized[0]
         singleimg['width']=resized[1]
@@ -113,23 +117,23 @@ def crop_single_anno(annodict,ori_size=(720,1280),resized=(480,640)):
         singleimg['annotations']=[]
         for bbx in annodict[imgname]['annotations']:
             newbbx=correct_single_box(bbx,ori_size,resized)
-            if newbbx!=None:
+            if newbbx!=None and newbbx['width']>rejectsize and newbbx['height']>rejectsize:
                 singleimg['annotations'].append(newbbx)
         newdict[imgname.replace('.jpg','_crop.jpg')]=singleimg
     return newdict
 
-def crop_annos(annopath,ori_size=(720,1280),resized=(480,640)):
+def crop_annos(annopath,ori_size=(720,1280),resized=(480,640),rejectsize=0):
     """
     crop and correct annotations after cropping images
     
     """
     jsonlist=os.listdir(annopath)
     for jsonname in jsonlist:
-        if 'crop' in jsonname or 'json' not in jsonname:
+        if 'crop' in jsonname or 'VIVA' not in jsonname or 'json' not in jsonname:
             continue
         with open(os.path.join(annopath,jsonname),'r') as fp1:
             annodict=json.load(fp1)
-        newdict=crop_single_anno(annodict,ori_size,resized)
+        newdict=crop_single_anno(annodict,ori_size,resized,rejectsize)
         with open(os.path.join(annopath,jsonname.replace('.json','_crop.json')),'w') as fp2:
             json.dump(newdict,fp2,sort_keys=True, indent=4)
         print('done cropping annotation: '+jsonname)
@@ -138,12 +142,14 @@ def crop_annos(annopath,ori_size=(720,1280),resized=(480,640)):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_path', type=str, 
-        default='D:/Private Manager/Personal File/uOttawa/Lab works/2018 fall/BerkleyDeepDrive/debug/bdd100k', 
+        default='D:/Private Manager/Personal File/uOttawa/Lab works/2018 fall/BerkleyDeepDrive/bdd100k', 
         help="select the file path for BDD image and annotations")
     parser.add_argument('--crop_image', type=bool, 
-        default=True, help="crop image or not, default as true")
+        default=False, help="crop image or not, default as true")
     parser.add_argument('--crop_anno', type=bool, 
         default=True, help="crop annotations or not, default as true")
+    parser.add_argument('--reject_size', type=int, 
+        default=22, help="filter the bbox smaller than this size")
     # debug path:
     # D:/Private Manager/Personal File/uOttawa/Lab works/2018 fall/BerkleyDeepDrive/debug/bdd100k
     # actual path:
@@ -152,13 +158,14 @@ if __name__=='__main__':
     filepath=args.file_path
     cropimgflag=args.crop_image
     cropannoflag=args.crop_anno
+    rejectsize=args.reject_size
     imagepath=os.path.join(filepath,'images')
     annopath=os.path.join(filepath,'labels')
     
     if cropimgflag:
         crop_images(imagepath)
     if cropannoflag:
-        newdict=crop_annos(annopath)
+        newdict=crop_annos(annopath=annopath,rejectsize=rejectsize)
     
 
 
