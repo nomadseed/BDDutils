@@ -10,9 +10,10 @@ import json
 import os
 import matplotlib.pyplot as plt
 
-folder_list=['s4cnn',
-             'ssd_mobilenet_opt_150_gt22',
-             'ssd_mobilenet_opt_300_gt22']
+folder_list={'s4cnn':'S4CNN',
+             'ssd_mobilenet_opt_150_gt22':'Our SSD 150x150 input',
+             'ssd_mobilenet_opt_300_gt22':'Our SSD 300x300 input',
+             'ssd_mobilenet_v2_300_bdd_autoratio':'SSD 300x300 input'}
 threshlist=[0.0001,
             0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
             0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
@@ -43,7 +44,7 @@ def loadjson(loadpath,folderlist=folder_list):
     for folder in folderlist:
         
         with open(os.path.join(loadpath,folder,'IOU 0_5','performance.json')) as fp:
-            performance[folder]=json.load(fp)
+            performance[folderlist[folder]]=json.load(fp)
     
     return performance
 
