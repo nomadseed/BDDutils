@@ -10,10 +10,18 @@ import json
 import os
 import matplotlib.pyplot as plt
 
-folder_list={'s4cnn':'S4CNN',
-             'ssd_mobilenet_opt_150_gt22':'Our SSD 150x150 input',
-             'ssd_mobilenet_opt_300_gt22':'Our SSD 300x300 input',
-             'ssd_mobilenet_v2_300_bdd_autoratio':'SSD 300x300 input'}
+folder_list={'yolov3_mobilenet':'YOLOv3 320x320',
+             'ssd_mobilenet_v2_224_bdd_autoratio':'Original SSD 224x224',
+             'ssd_mobilenet_v2_300_bdd_autoratio':'Original SSD 300x300',
+             's4cnn':'Our C4S [3]',
+             'ssd_mobilenet_opt_300_gt22':'Our SSD 300x300'
+             }
+legendlist={'YOLOv3 320x320':[0.4745098, 0.9372549, 1.       ],
+            'Original SSD 224x224':[0.21176471, 0.85098039, 0.98039216],
+            'Original SSD 300x300':[0.12941176, 0.66666667, 1.        ],
+            'Our SSD 300x300':[1.        , 0.75294118, 0.        ],
+            'Our C4S [3]':[0.1254902 , 0.54117647, 0.99607843]
+            }
 threshlist=[0.0001,
             0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
             0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
@@ -30,8 +38,10 @@ def plotPRcurve(performance, savepath=None):
         for conf in performance[model]:
             precision.append(performance[model][conf]['overall']['precision'])
             recall.append(performance[model][conf]['overall']['recall'])
-        plt.plot(recall,precision,'o-',label=model)
-    plt.title('Precision vs Recall')
+        plt.plot(recall,precision,marker='o',color=legendlist[model],label=model)
+    plt.title('Precision vs Recall of Our Models')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
     plt.legend(loc=3)
 
     if savepath is not None:
