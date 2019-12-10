@@ -17,6 +17,8 @@ import json
 import argparse
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({'font.size': 15})
+
 savedKmeanList={'ssd_opt_gt22':[
                     [16,13],[23,15],[18,20],
                     [25,20],[50,23],[33,38],
@@ -39,8 +41,8 @@ savedKmeanList={'ssd_opt_gt22':[
                     [20,26],[30,36],[29,22],[44,30],
                     [59,65],[61,44],[83,57],[43,48],[26,79],
                     [81,80],[34,130],[61,100],[93,105],[80,139],[115,83],
-                    [65,180],[80,250],[160,125],[203,171],[155,246],
-                        [131,175],[119,128]
+                    [65,180],[80,250],[160,125],[203,171],[131,175],[119,128],
+                    [155,246]
                     ]
                 }
 
@@ -95,34 +97,27 @@ def groupBBox(bboxlist,threshlist,groupshape):
     
     """
     xlist=bboxlist.copy()
-    bboxdict={}
+    bboxdict={i:[] for i in range(len(threshlist))}
     print('grouping bbox based on threshlist, method: '+groupshape)
-    if groupshape=='sector':
-        xlist.sort(key=returnBoxArea,reverse=True)
-        for thresh in threshlist:
-            curlist=[]
-            for i in range(len(xlist)):
-                box=xlist.pop()    
-                if box[0]**2+box[1]**2<thresh**2:
-                    curlist.append(box)
-                else:
-                    break
-        
-            bboxdict[thresh]=curlist
-    elif groupshape=='belt':
-        xlist.sort(key=returnBoxEdge,reverse=True)
-        for thresh in threshlist:
-            curlist=[]
-            for i in range(len(xlist)):
-                box=xlist.pop()    
-                if box[0]+box[1]<thresh:
-                    curlist.append(box)
-                else:
-                    break
-        
-            bboxdict[thresh]=curlist
-    else:
+    if groupshape not in ['sector','belt','sickle']:
         raise ValueError('groupshape can only be belt or sector')
+        
+    xlist.sort(key=returnBoxArea,reverse=True)
+    for i in range(len(xlist)):
+        box=xlist.pop()    
+        for layer in range(len(threshlist)):
+            if groupshape=='tick':
+                if box[0]*box[1]>=threshlist[layer][0]**2 and box[0]*box[1]<threshlist[layer][1]**2:# layer 0-5
+                    bboxdict[layer].append(box)
+            elif groupshape=='sector':
+                if box[0]**2+box[1]**2>=2*threshlist[layer][0]**2 and box[0]**2+box[1]**2<2*threshlist[layer][1]**2:# layer 0-5
+                    bboxdict[layer].append(box)
+            elif groupshape=='belt':
+                if box[0]+box[1]>=threshlist[layer][0]*2 and box[0]+box[1]<threshlist[layer][1]*2:# layer 0-5
+                    bboxdict[layer].append(box)
+                        
+
+    
     return bboxdict
 
 def simpleKMeans(xlist,n_cluster=2,random_state=0,algorithm='auto'):
@@ -202,17 +197,17 @@ def plotScatter(bboxdict, clusterdict, savepath='',samecolor=False):
     if samecolor:
         colormap=['#0000ff','#0000ff']
     else:
-        colormap=['#0000ff', '#00ff00']# use html colors
+        colormap=['#0000ff', '#ffff00']# use html colors
     centrolist=[i['final_centro'] for i in clusterdict]
 
-    ax = plt.subplot()
+    ax = plt.subplot(axisbg='black')
     
     # plot scatter for benchmarks
     for i, thresh in zip(range(len(bboxdict)),bboxdict):
         x_box = [i[0] for i in bboxdict[thresh]]
         y_box = [i[1] for i in bboxdict[thresh]]
         area_box = np.ones(len(x_box))*1
-        ax.scatter(x_box, y_box, s=area_box, alpha=0.2, c=colormap[i%2], marker='o')# colormap[i]*len(x_box)
+        ax.scatter(x_box, y_box, s=area_box, alpha=0.3, c=colormap[i%2], marker='o')# colormap[i]*len(x_box)
     
 
     # plot centroids
@@ -224,8 +219,8 @@ def plotScatter(bboxdict, clusterdict, savepath='',samecolor=False):
     
     ax.set_xlabel('Width')
     ax.set_ylabel('Height')
-    plt.title('Distribution of Groundtruth BBox and anchors')
-    plt.grid(True)
+    plt.title('Distribution of Ground Truth & Default Boxes')
+    #plt.grid(True)
     plt.savefig(os.path.join(savepath,'scatter.png'),dpi=100)
     print('scatter saved as\n {}'.format(os.path.join(savepath,'scatter.png')))
     plt.show()
@@ -250,7 +245,7 @@ def plotScatterSaved(bboxdict,clusterlist_1,clusterlist_2,
         x_box = [i[0] for i in bboxdict[thresh]]
         y_box = [i[1] for i in bboxdict[thresh]]
         area_box = np.ones(len(x_box))*1
-        ax.scatter(x_box, y_box, s=area_box, alpha=0.3, c='b', marker='o')
+        ax.scatter(x_box, y_box, s=area_box, alpha=0.2, c='b', marker='o')
         
     # plot centroids of cluster result 1 in red
     for anchor in savedKmeanList[clusterlist_1]:
@@ -266,7 +261,7 @@ def plotScatterSaved(bboxdict,clusterlist_1,clusterlist_2,
     
     ax.set_xlabel('Width')
     ax.set_ylabel('Height')
-    plt.title('Raw and Layer-wise K-means Clustering')
+    plt.title('Raw & Layer-wise K-means')
     #plt.grid(True)
     plt.savefig(os.path.join(savepath,'kmeans_comparison.png'),dpi=100)
     print('scatter saved as\n {}'.format(os.path.join(savepath,'kmeans_comparison.png')))
@@ -307,24 +302,41 @@ if __name__=='__main__':
     # run the file and check h_pel_list
     
     # SETUPS
-    #threshtype='max'
-    #threshtype='mean'
-    threshtype='all'
-    scorethresh=0.7 # default=0.7
+    #threshtype='abs'
+    threshtype='mean'
+    #threshtype='all'
+    scorethresh=0.8 # default=0.7
     #groupshape='belt'
     groupshape='sector'
-    compareonly=True
+    #groupshape='sickle'
+    compareonly=False
     
     
     '''threshes for various dataset'''
-    #threshlist = [500] # yolo clustering
-    if threshtype=='max':
-        threshlist = [15.78,30,60,100,150,500] # Threshlist for BDD dataset, of grid size [19,10,5,3,2,1]
+    if threshtype=='abs':
+        # Threshlist for BDD dataset, of grid size [19,10,5,3,2,1]
+        # Matching area size: [16,30,60,100,150,300]
+        threshlist = [[0,22],
+                      [22,42],
+                      [42,85],
+                      [70,141],
+                      [106,212],
+                      [212,10000]
+                      ] 
     elif threshtype=='mean':
-        threshlist = [20,45,80,125,225,500] # Threshlist for BDD dataset, of grid size [19,10,5,3,2,1], but use grid size as centre
+        # Threshlist for BDD dataset, of grid size [19,10,5,3,2,1], 
+        # but use mean of grid sizes as boundary such that there is no overlapping
+        # between two adjacent box groups
+        threshlist = [[0,22],
+                      [22,42],
+                      [42,(85+70)/2],
+                      [(85+70)/2,(141+106)/2],
+                      [(141+106)/2,212],
+                      [212,10000]
+                      ] 
     #threshlist=[13.63, 17.64, 33.33, 75, 150, 500] # Threshlist for Caltech dataset, of grid size [22,17,9,4]
     elif threshtype=='all':
-        threshlist=[10000]
+        threshlist=[[0,10000]]
         scorethresh=1
     
     bboxdict = groupBBox(bboxlist,threshlist,groupshape=groupshape)
@@ -345,9 +357,15 @@ if __name__=='__main__':
         priors=np.sum(layer*centro)
         centronum=sum(centro)
         score=sum(scorelist)
-        avgscore=score/centronum
-        print('avgscore: {}'.format(avgscore))
+        #avgscore=score/centronum
+        #print('avgscore: {}'.format(avgscore))
+        effcost=(score*priors)/(centronum*len(bboxlist))
+        print('Layer-wise KMeans for {}-{} method'.format(groupshape,threshtype))
+        print('KMeans thresh={}'.format(scorethresh))
+        print('centro number: {}'.format(centronum))
         print('priors: {}'.format(priors))
+        print('prior efficiency cost: {}'.format(effcost))
+        
     else:
         plotScatterSaved(bboxdict,
                          clusterlist_1='ssd_opt_gt22',
