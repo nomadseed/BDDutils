@@ -29,20 +29,42 @@ savedKmeanList={'ssd_opt_gt22':[
                     ],
                 'ssd_clust23p':[
                     [6,6],
-                    [13,18],[10,11],
-                    [27,33],[20,29],[22,17],
-                    [51,33],[20,71],[35,41],
-                    [52,52],[77,55],[22,114],[60,71],
-                    [84,84],[57,159],[134,120],[113,165],[63,109],[77,236],
-                            [97,120],[161,231],[178,153],[112,83]
+                    [18,13],[11,10],
+                    [33,27],[29,20],[17,22],
+                    [33,51],[71,20],[41,35],
+                    [52,52],[55,77],[114,22],[71,60],
+                    [84,84],[159,57],[120,134],[165,113],[109,63],[236,77],
+                            [120,97],[231,161],[153,178],[83,112]
                     ],
                 'ssd_clust23p_gt22':[
-                    [15,17],
-                    [20,26],[30,36],[29,22],[44,30],
-                    [59,65],[61,44],[83,57],[43,48],[26,79],
-                    [81,80],[34,130],[61,100],[93,105],[80,139],[115,83],
-                    [65,180],[80,250],[160,125],[203,171],[131,175],[119,128],
-                    [155,246]
+                    [17,15],
+                    [26,20],[36,30],[22,29],[30,44],
+                    [65,59],[44,61],[57,83],[48,43],[79,26],
+                    [80,81],[130,34],[100,61],[105,93],[139,80],[83,115],
+                    [180,65],[250,80],[125,160],[171,203],[175,131],[128,119],
+                    [246,155]
+                    ],
+                # the original anchors are acquired from 'multiple_grid_anchor_generator.py'
+                # basesize=256
+                # num_layers=6,
+                # min_scale=0.2,
+                # max_scale=0.95
+                # aspect_ratios=(1.0, 2.0, 3.0, 1.0 / 2, 1.0 / 3)
+                'ssd_origin':[
+                    [51, 51], [89, 89], [128, 128], [166, 166], [204, 204], 
+                    [243, 243], [72, 36], [126, 63], [180, 90], [235, 117], 
+                    [289, 144], [343, 171], [88, 29], [155, 51], [221, 73], 
+                    [288, 96], [354, 118], [421, 140], [36, 72], [63, 126], 
+                    [90, 180], [117, 235], [144, 289], [171, 343], [29, 88], 
+                    [51, 155], [73, 221], [96, 288], [118, 354], [140, 421]
+                    ],
+                'ssd_adjusted':[
+                    [24,8], [45,14], [90,29], [ 150,48], [ 225,72], 
+                    [ 450,144], [ 15,12], [ 29,23], [ 57,46], [ 95,76], 
+                    [ 143,114], [ 285,228], [ 12,15], [ 23,29], [ 45,58], 
+                    [ 75,96], [ 113,144], [ 225,288], [ 10,18], [ 19,34], 
+                    [ 38,68], [ 64,113], [ 96,169], [ 192,338], [ 9,20], 
+                    [ 17,38], [ 34,76], [ 57,127], [ 85,191], [ 170,382]
                     ]
                 }
 
@@ -330,15 +352,16 @@ def plotScatterSaved(bboxdict,clusterlist_1,clusterlist_2,
         
     # plot centroids of cluster result 1 in red
     for anchor in savedKmeanList[clusterlist_1]:
-        x_anchor=anchor[1]
-        y_anchor=anchor[0]
-        ax.scatter(x_anchor, y_anchor, s=30, alpha=1, c='r', marker='o')
-
-    # plot centroids of cluster result 2 in blue
-    for anchor in savedKmeanList[clusterlist_2]:
         x_anchor=anchor[0]
         y_anchor=anchor[1]
-        ax.scatter(x_anchor, y_anchor, s=30, alpha=1, c='g', marker='^')
+        ax.scatter(x_anchor, y_anchor, s=30, alpha=1, c='r', marker='o')
+
+    # plot centroids of cluster result 2 in green
+    if clusterlist_2 is not None:
+        for anchor in savedKmeanList[clusterlist_2]:
+            x_anchor=anchor[0]
+            y_anchor=anchor[1]
+            ax.scatter(x_anchor, y_anchor, s=30, alpha=1, c='g', marker='^')
 
     ax.set_xlabel('Width',**kwargs)
     ax.set_ylabel('Height',**kwargs)
@@ -346,8 +369,11 @@ def plotScatterSaved(bboxdict,clusterlist_1,clusterlist_2,
     #plt.grid(True)
     plt.savefig(os.path.join(savepath,'kmeans_comparison.png'),dpi=100)
     print('scatter saved as\n {}'.format(os.path.join(savepath,'kmeans_comparison.png')))
-    print('red dots are {}, yellow triangles are {}'.format(clusterlist_1,
+    if clusterlist_2 is not None:
+        print('red dots are {}, green triangles are {}'.format(clusterlist_1,
                                          clusterlist_2))
+        
+                    
     #plt.show()
     #plt.close()
 
@@ -360,13 +386,13 @@ PATH_DICT={'bdd':{'path':'D:/Private Manager/Personal File/uOttawa/Lab works/201
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_path', type=str, 
-                        default=PATH_DICT['cal']['path'], 
+                        default=PATH_DICT['bdd']['path'], 
                         help="File path of input data")
     #D:/Private Manager/Personal File/uOttawa/Lab works/2018 fall/BerkleyDeepDrive/bdd100k
     #D:/Private Manager/Personal File/uOttawa/Lab works/2019 summer/caltech_dataset
     
     parser.add_argument('--json_label', type=str, 
-                        default=PATH_DICT['cal']['label'], 
+                        default=PATH_DICT['bdd']['label'], 
                         help="label to specify json file")
     #bdd100k_labels_images_val_VIVA_format_crop.json
     #caltech_annotation_VIVA_test.json
@@ -395,7 +421,7 @@ if __name__=='__main__':
     #groupshape='belt'
     groupshape='sector'
     #groupshape='sickle'
-    compareonly=False
+    compareonly=True
     
     
     '''threshes for various dataset'''
@@ -443,8 +469,8 @@ if __name__=='__main__':
         
     else:
         plotScatterSaved(bboxdict,
-                         clusterlist_1='ssd_opt_gt22',
-                         clusterlist_2='ssd_clust23p_gt22',
+                         clusterlist_1='ssd_clust23p_gt22',
+                         clusterlist_2=None,
                          savepath=savepath)
 
     
